@@ -10,10 +10,10 @@ void test_flattened_coordinates() {
 
     bool ok = true;
 
-    if (Utils::flattenedMatrixCoordinates(0, 0, 3) != 0) ok = false;
-    if (Utils::flattenedMatrixCoordinates(0, 1, 3) != 1) ok = false;
-    if (Utils::flattenedMatrixCoordinates(1, 0, 3) != 3) ok = false;
-    if (Utils::flattenedMatrixCoordinates(2, 2, 3) != 8) ok = false;
+    if (Utils::flat2DIdx(0, 0, 3) != 0) ok = false;
+    if (Utils::flat2DIdx(0, 1, 3) != 1) ok = false;
+    if (Utils::flat2DIdx(1, 0, 3) != 3) ok = false;
+    if (Utils::flat2DIdx(2, 2, 3) != 8) ok = false;
 
     if (ok) std::cout << "OK.\n";
     else    std::cout << "FAILED.\n";

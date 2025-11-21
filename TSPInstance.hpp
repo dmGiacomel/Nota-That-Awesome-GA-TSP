@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <random>
 #include <limits>
+#include <string>
+#include <ostream>
+#include <iostream>
 
 //only the symmetric case is considered so far
 class TSPInstance{
@@ -24,6 +27,13 @@ public:
 
     //dummy TSP instance
     TSPInstance();
+
+    //create instance by parsing a TSPLIB-format file (supports EUC_2D NODE_COORD_SECTION
+    //and EDGE_WEIGHT_SECTION with full matrix). Throws std::runtime_error on parse errors.
+    static TSPInstance fromTSPLIB(const std::string& path);
+
+    //print adjacency matrix (prints at most 10x10 to avoid huge output)
+    void printAdjMatrix(std::ostream& os = std::cout) const;
 
     //adj_matrix should be in flattened form
     TSPInstance(const std::vector<double>& adj_matrix, size_t n_cities);
