@@ -16,7 +16,7 @@ public:
     //assumes the path is a hamiltonian cycle
     //path is given by an array of visited cities
     //the first city should not be repeated at the end of the array
-    double getPathCost(const std::vector<int>& path) const;
+    double getPathCost(const std::vector<size_t>& path) const;
 
     //assumes the two cities exist
     double getEdgeCost(size_t city_a, size_t city_b) const;

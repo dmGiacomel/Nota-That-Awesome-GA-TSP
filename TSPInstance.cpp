@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-double TSPInstance::getPathCost(const std::vector<int>& path) const{
+double TSPInstance::getPathCost(const std::vector<size_t>& path) const{
     double path_cost{0.0};
     for (size_t i{0}; i < n_cities - 1; i++){
         path_cost += adj_matrix[Utils::flat2DIdx(path[i],path[i+1],n_cities)];
