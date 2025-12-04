@@ -81,9 +81,54 @@ void test_path_cost() {
     else std::cout << "FAILED: got " << cost << "\n";
 }
 
+void test_segments_intersect() {
+    std::cout << "Testing TSPInstance::segmentsIntersect\n";
+
+    // Create a small instance with coordinates for 6 cities
+    size_t n = 6;
+    std::vector<std::tuple<double,double>> coords(n);
+    // 0: (0,0)
+    coords[0] = std::make_tuple(0.0, 0.0);
+    // 1: (1,1)
+    coords[1] = std::make_tuple(1.0, 1.0);
+    // 2: (0,1)
+    coords[2] = std::make_tuple(0.0, 1.0);
+    // 3: (1,0)
+    coords[3] = std::make_tuple(1.0, 0.0);
+    // 4: (2,0)
+    coords[4] = std::make_tuple(2.0, 0.0);
+    // 5: (3,0)
+    coords[5] = std::make_tuple(3.0, 0.0);
+
+    // adjacency matrix placeholder (not used by segmentsIntersect)
+    std::vector<double> adj(n * n, std::numeric_limits<double>::infinity());
+
+    TSPInstance tsp(adj, coords, n);
+
+    bool ok = true;
+
+    // Case 1: crossing segments: (0,1) vs (2,3) -> (0,0)-(1,1) crosses (0,1)-(1,0)
+    if (!tsp.segmentsIntersect(0,1,2,3)) ok = false;
+
+    // Case 2: non-crossing parallel: (0,3) vs (2,4) -> (0,0)-(1,0) and (0,1)-(2,0) do not cross
+    if (tsp.segmentsIntersect(0,3,2,4)) ok = false;
+
+    // Case 3: touching at endpoint: (0,3) vs (3,4) -> touch at city 3
+    if (!tsp.segmentsIntersect(0,3,3,4)) ok = false;
+
+    // Case 4: colinear overlapping: (3,5) vs (4,5) -> (1,0)-(3,0) and (2,0)-(3,0) overlap/touch
+    if (!tsp.segmentsIntersect(3,5,4,5)) ok = false;
+
+    if (ok) std::cout << "OK.\n";
+    else    std::cout << "FAILED.\n";
+}
+
+
+
 int main() {
     test_flattened_coordinates();
     test_random_instance();
     test_path_cost();
+    test_segments_intersect();
     return 0;
 }

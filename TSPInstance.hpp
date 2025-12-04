@@ -9,7 +9,6 @@
 #include <ostream>
 #include <iostream>
 
-//only the symmetric case is considered so far
 class TSPInstance{
 public:
 
@@ -18,22 +17,24 @@ public:
     //the first city should not be repeated at the end of the array
     double getPathCost(const std::vector<size_t>& path) const;
 
-    //assumes the two cities exist
     double getEdgeCost(size_t city_a, size_t city_b) const;
 
     std::tuple<double,double> getCityCoordinates(size_t city) const;
 
+    //returns number of cities in the instance
     size_t getTourSize() const;
 
     //dummy TSP instance
     TSPInstance();
 
-    //create instance by parsing a TSPLIB-format file (supports EUC_2D NODE_COORD_SECTION
-    //and EDGE_WEIGHT_SECTION with full matrix). Throws std::runtime_error on parse errors.
+    //create instance by parsing a TSPLIB-format file
     static TSPInstance fromTSPLIB(const std::string& path);
 
     //print adjacency matrix (prints at most 10x10 to avoid huge output)
     void printAdjMatrix(std::ostream& os = std::cout) const;
+
+    // Returns true if segment (a,b) intersects segment (c,d) using city coordinates
+    bool segmentsIntersect(size_t a, size_t b, size_t c, size_t d) const;
 
     //adj_matrix should be in flattened form
     TSPInstance(const std::vector<double>& adj_matrix, size_t n_cities);
@@ -44,7 +45,7 @@ public:
     //generates random symetric TSP instance given the integer seed provided
     //edge wheights range is [a,b)
     TSPInstance(size_t n_cities, double a, double b, int random_seed);
-
+    
     TSPInstance(const TSPInstance&) = default;
     TSPInstance(TSPInstance&&) noexcept = default;
     TSPInstance& operator=(const TSPInstance&) = default;
