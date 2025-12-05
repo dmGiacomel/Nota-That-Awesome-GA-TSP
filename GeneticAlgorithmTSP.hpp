@@ -9,7 +9,7 @@
 #include <numeric>
 #include <omp.h>
 #include <thread>
-
+#include <chrono>
 
 class Parameters {
 public:
@@ -17,6 +17,7 @@ public:
     double mutation_rate;
     double crossover_rate;
     double elitism;
+    double heuristics_rate;
     size_t max_iter;
     int random_seed;
     int tournament_size;
@@ -35,7 +36,6 @@ class GeneticAlgorithmTSP {
 public:
     GeneticAlgorithmTSP(const TSPInstance& instance, Parameters parameters);
     ReturnInfo solve();
-
 private:
 
     void generateInitialPop();
@@ -54,7 +54,13 @@ private:
 
     void applyMutation();
 
+    void applyHeuristics();
+
+    void deleteCross();
+
     void mutate(size_t individual);
+
+    void deleteCross(size_t individual);
 
     Parameters parameters;
     const TSPInstance& tsp_instance;

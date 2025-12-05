@@ -26,6 +26,8 @@ GeneticAlgorithmTSP::GeneticAlgorithmTSP(const TSPInstance& instance, Parameters
 }
 
 ReturnInfo GeneticAlgorithmTSP::solve(){
+
+    auto t_start = std::chrono::high_resolution_clock::now();
     omp_set_dynamic(0);
     omp_set_num_threads(std::thread::hardware_concurrency());
 
@@ -46,6 +48,7 @@ ReturnInfo GeneticAlgorithmTSP::solve(){
         applyElitism();
         generateOffspring();
         applyMutation();
+        applyHeuristics();
         updatePopFitness();
         updatePopRank();
 
@@ -62,11 +65,14 @@ ReturnInfo GeneticAlgorithmTSP::solve(){
         std::swap(pop_fitness, pop_aux_fitness);
     }
 
+    auto t_end = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration<double>(t_end - t_start).count();
+
     ReturnInfo return_info = {
         global_best,
         best_fitness_per_iter,
         global_best_fitness,
-        //timer :p
+        elapsed,
         best_iter
     };
 
@@ -107,9 +113,40 @@ void GeneticAlgorithmTSP::applyMutation(){
     }
 }
 
+void GeneticAlgorithmTSP::applyHeuristics(){
+    std::uniform_real_distribution will_apply(0.0, 1.0);
+    for (size_t i = 0; i < parameters.pop_size; i++){
+        if(will_apply(random_generator) < parameters.heuristics_rate){
+            deleteCross(i);
+        }
+    }
+}
+
 void GeneticAlgorithmTSP::mutate(size_t individual){
     std::uniform_int_distribution<size_t> random_city(0, n_cities - 1);
     std::swap(pop_aux[random_city(random_generator)], pop_aux[random_city(random_generator)]);
+}
+
+void GeneticAlgorithmTSP::deleteCross(size_t individual){
+    auto &tour = pop_aux[individual];
+
+    for (size_t i{0}; i < n_cities - 3; i++){
+        for (size_t j = 0; j < n_cities - 1; j++){
+            if (j <= i + 1) continue;
+            size_t a1 = tour[i];
+            size_t b1 = tour[i+1];
+            size_t a2 = tour[j];
+            size_t b2 = tour[j+1];
+
+            if (tsp_instance.segmentsIntersect(a1, b1, a2, b2)){
+                size_t left = i + 1;
+                size_t right = j;
+
+                std::reverse(tour.begin() + left, tour.begin() + right + 1);
+                return;
+            }
+        }
+    }
 }
 
 void GeneticAlgorithmTSP::updatePopFitness(){

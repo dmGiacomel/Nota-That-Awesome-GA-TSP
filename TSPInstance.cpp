@@ -8,8 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-
-double TSPInstance::getPathCost(const std::vector<int>& path) const{
+double TSPInstance::getPathCost(const std::vector<size_t>& path) const{
     double path_cost{0.0};
     for (size_t i{0}; i < n_cities - 1; i++){
         path_cost += adj_matrix[Utils::flat2DIdx(path[i],path[i+1],n_cities)];
@@ -285,7 +284,6 @@ bool TSPInstance::segmentsIntersect(size_t a, size_t b, size_t c, size_t d) cons
 
     // General case
     if(o1 != o2 && o3 != o4){
-
         return true;
     }
 
