@@ -1,4 +1,5 @@
 #include "GeneticAlgorithmTSP.hpp"
+#include <chrono>
 
 GeneticAlgorithmTSP::GeneticAlgorithmTSP(const TSPInstance& instance, Parameters parameters)
     :parameters(parameters),
@@ -82,9 +83,29 @@ ReturnInfo GeneticAlgorithmTSP::solve(){
 void GeneticAlgorithmTSP::generateInitialPop(){
     std::vector<size_t> raw_individual(n_cities);
     std::iota(raw_individual.begin(), raw_individual.end(), 0);
-    for(auto &individual: pop_aux){
+    // If user injected solutions, seed the first slots with them (if size matches)
+    size_t injected = 0;
+    if(!injected_solutions.empty()){
+        for(const auto &sol : injected_solutions){
+            if(injected >= parameters.pop_size) break;
+            if(sol.size() != n_cities) continue; // only accept full-length solutions
+            pop_aux[injected] = sol;
+            ++injected;
+        }
+    }
+
+    // Fill remaining population with random permutations
+    for(size_t idx = injected; idx < parameters.pop_size; ++idx){
+        auto &individual = pop_aux[idx];
         individual = raw_individual;
         std::shuffle(individual.begin(), individual.end(), random_generator);
+    }
+}
+
+void GeneticAlgorithmTSP::setInjectedSolutions(const std::vector<std::vector<size_t>>& sols){
+    injected_solutions.clear();
+    for(const auto &s : sols){
+        if(s.size() == n_cities) injected_solutions.push_back(s);
     }
 }
 
@@ -93,7 +114,7 @@ size_t GeneticAlgorithmTSP::selection(){
     size_t winner = random_individual(random_generator);
     double best_fitness = pop_fitness[winner];
 
-    for(size_t i{0}; i < parameters.tournament_size - 1; i++){
+    for(size_t i = 0; i < parameters.tournament_size - 1; i++){
         size_t candidate = random_individual(random_generator);
         if (pop_fitness[candidate] < best_fitness){
             winner = candidate;
@@ -151,7 +172,7 @@ void GeneticAlgorithmTSP::deleteCross(size_t individual){
 
 void GeneticAlgorithmTSP::updatePopFitness(){
     #pragma omp parallel for schedule(static)
-    for(size_t i{0}; i < parameters.pop_size; i++){
+    for(size_t i = 0; i < parameters.pop_size; i++){
         pop_aux_fitness[i] = tsp_instance.getPathCost(pop_aux[i]);
     }
 }
@@ -216,7 +237,7 @@ GeneticAlgorithmTSP::crossover(size_t parent_a, size_t parent_b){
 
     std::vector<char> already_in_a(n_cities, 0);
     std::vector<char> already_in_b(n_cities, 0);
-    for(size_t i{first_cut}; i <= second_cut; i++){
+    for(size_t i = first_cut; i <= second_cut; i++){
         already_in_a[son_a[i]] = 1;
         already_in_b[son_b[i]] = 1;
     }

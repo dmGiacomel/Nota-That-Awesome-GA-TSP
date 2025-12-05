@@ -110,6 +110,13 @@
     "streambuf": "cpp",
     "thread": "cpp",
     "cinttypes": "cpp",
-    "typeinfo": "cpp"
+    "typeinfo": "cpp",
+    "charconv": "cpp",
+    "map": "cpp",
+    "optional": "cpp",
+    "format": "cpp",
+    "span": "cpp",
+    "text_encoding": "cpp",
+    "variant": "cpp"
   }
 }

@@ -9,15 +9,15 @@
 #include <numeric>
 #include <omp.h>
 #include <thread>
-#include <chrono>
+
 
 class Parameters {
 public:
     size_t pop_size;
     double mutation_rate;
     double crossover_rate;
+    double heuristics_rate; // probability to apply local heuristics (delete-cross)
     double elitism;
-    double heuristics_rate;
     size_t max_iter;
     int random_seed;
     int tournament_size;
@@ -35,7 +35,10 @@ public:
 class GeneticAlgorithmTSP {
 public:
     GeneticAlgorithmTSP(const TSPInstance& instance, Parameters parameters);
+    // Allow injecting one or more initial solutions to seed the population
+    void setInjectedSolutions(const std::vector<std::vector<size_t>>& sols);
     ReturnInfo solve();
+
 private:
 
     void generateInitialPop();
@@ -50,17 +53,15 @@ private:
 
     void generateOffspring();
 
+    void applyHeuristics();
+
+    void deleteCross(size_t individual);
+
     void applyElitism();
 
     void applyMutation();
 
-    void applyHeuristics();
-
-    void deleteCross();
-
     void mutate(size_t individual);
-
-    void deleteCross(size_t individual);
 
     Parameters parameters;
     const TSPInstance& tsp_instance;
@@ -82,5 +83,7 @@ private:
     size_t n_cities;
 
     std::mt19937 random_generator;
+    // Optional injected solutions to seed initial population
+    std::vector<std::vector<size_t>> injected_solutions;
 };
 #endif

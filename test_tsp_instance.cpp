@@ -66,7 +66,7 @@ void test_path_cost() {
 
     TSPInstance tsp(adj, 4);
 
-    std::vector<size_t> path = {0, 1, 3, 2};
+    std::vector<int> path = {0, 1, 3, 2};
 
     // cost:
     // 0→1 = 1
