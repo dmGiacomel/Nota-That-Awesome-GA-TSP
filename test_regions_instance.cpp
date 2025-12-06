@@ -10,7 +10,6 @@
 
 namespace fs = std::filesystem;
 
-
 // Estrutura para representar a região
 struct Regiao{
     int id_regiao;

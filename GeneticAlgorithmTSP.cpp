@@ -1,5 +1,4 @@
 #include "GeneticAlgorithmTSP.hpp"
-#include <chrono>
 
 GeneticAlgorithmTSP::GeneticAlgorithmTSP(const TSPInstance& instance, Parameters parameters)
     :parameters(parameters),
@@ -22,7 +21,10 @@ GeneticAlgorithmTSP::GeneticAlgorithmTSP(const TSPInstance& instance, Parameters
     pop_rank(parameters.pop_size),
     pop_aux_rank(parameters.pop_size),
     pop_fitness(parameters.pop_size, 0.0),
-    pop_aux_fitness(parameters.pop_size, 0.0)
+    pop_aux_fitness(parameters.pop_size, 0.0),
+    already_in_a(n_cities),
+    already_in_b(n_cities),
+    which_parent_goes_to_i(parameters.pop_size)
 {
 }
 
@@ -46,6 +48,8 @@ ReturnInfo GeneticAlgorithmTSP::solve(){
     std::swap(pop_fitness, pop_aux_fitness);
 
     for(current_iter = 1; current_iter < parameters.max_iter; current_iter++){
+
+        std::cout << "iter " << current_iter << std::endl; 
         applyElitism();
         generateOffspring();
         applyMutation();
@@ -145,24 +149,22 @@ void GeneticAlgorithmTSP::applyHeuristics(){
 
 void GeneticAlgorithmTSP::mutate(size_t individual){
     std::uniform_int_distribution<size_t> random_city(0, n_cities - 1);
-    std::swap(pop_aux[random_city(random_generator)], pop_aux[random_city(random_generator)]);
+    std::swap(pop_aux[individual][random_city(random_generator)], pop_aux[individual][random_city(random_generator)]);
 }
 
 void GeneticAlgorithmTSP::deleteCross(size_t individual){
     auto &tour = pop_aux[individual];
 
     for (size_t i{0}; i < n_cities - 3; i++){
-        for (size_t j = 0; j < n_cities - 1; j++){
-            if (j <= i + 1) continue;
-            size_t a1 = tour[i];
-            size_t b1 = tour[i+1];
+        size_t a1 = tour[i];
+        size_t b1 = tour[i+1];
+        for (size_t j = i + 2; j < n_cities - 1; j++){
             size_t a2 = tour[j];
             size_t b2 = tour[j+1];
 
             if (tsp_instance.segmentsIntersect(a1, b1, a2, b2)){
                 size_t left = i + 1;
                 size_t right = j;
-
                 std::reverse(tour.begin() + left, tour.begin() + right + 1);
                 return;
             }
@@ -190,6 +192,8 @@ void GeneticAlgorithmTSP::updatePopRank(){
 void GeneticAlgorithmTSP::generateOffspring(){
 
     std::uniform_real_distribution crossover_dist(0.0, 1.0);
+    std::fill(which_parent_goes_to_i.begin(), which_parent_goes_to_i.end(), parameters.pop_size);
+
     for (size_t i{n_elitist_sol}; i < parameters.pop_size; i += 2){
         size_t parent_a = selection();
         size_t parent_b;
@@ -198,24 +202,30 @@ void GeneticAlgorithmTSP::generateOffspring(){
         while (parent_a == parent_b);
         
         if(crossover_dist(random_generator) < parameters.crossover_rate){
-            auto [son_a, son_b] = crossover(parent_a, parent_b);
-            pop_aux[i] = son_a;
             if (i + 1 < parameters.pop_size) 
-                pop_aux[i + 1] = son_b;
+                crossover(parent_a, parent_b, pop_aux[i], pop_aux[i+1]);
+            else
+                crossover(parent_a, parent_b, pop_aux[i-1], pop_aux[i]);
         }else{
-            pop_aux[i] = pop[parent_a];
-            if (i + 1 < parameters.pop_size) 
-                pop_aux[i+1] = pop[parent_b];
+            which_parent_goes_to_i[i] = parent_a;
+            if (i + 1 < parameters.pop_size){
+                 which_parent_goes_to_i[i+1] = parent_b;
+            }
         }
     }
+
+    for (size_t i{0}; i < parameters.pop_size; i++){
+        if(which_parent_goes_to_i[i] < parameters.pop_size){
+            auto &parent = pop[which_parent_goes_to_i[i]];
+            std::copy(parent.begin(), parent.end(), pop_aux[i].begin());
+        }
+    }
+
 }
 
-std::tuple<std::vector<size_t>, std::vector<size_t>> 
-GeneticAlgorithmTSP::crossover(size_t parent_a, size_t parent_b){
+void GeneticAlgorithmTSP::crossover(size_t parent_a, size_t parent_b, std::vector<size_t>& son_a, std::vector<size_t>& son_b){
     const std::vector<size_t>& A = pop[parent_a];
     const std::vector<size_t>& B = pop[parent_b];
-    std::vector<size_t> son_a(n_cities);
-    std::vector<size_t> son_b(n_cities);
 
     std::uniform_int_distribution<size_t> random_cut_dist(0, n_cities - 1);
     size_t first_cut = random_cut_dist(random_generator);
@@ -235,8 +245,9 @@ GeneticAlgorithmTSP::crossover(size_t parent_a, size_t parent_b){
         son_a.begin() + first_cut
     );
 
-    std::vector<char> already_in_a(n_cities, 0);
-    std::vector<char> already_in_b(n_cities, 0);
+    std::fill(already_in_a.begin(), already_in_a.end(), 0);
+    std::fill(already_in_b.begin(), already_in_b.end(), 0);
+
     for(size_t i = first_cut; i <= second_cut; i++){
         already_in_a[son_a[i]] = 1;
         already_in_b[son_b[i]] = 1;
@@ -259,8 +270,6 @@ GeneticAlgorithmTSP::crossover(size_t parent_a, size_t parent_b){
             idx_b = (idx_b + 1) % n_cities;
         }
     }
-
-    return std::make_tuple(son_a, son_b);
 }
 
 void GeneticAlgorithmTSP::applyElitism(){

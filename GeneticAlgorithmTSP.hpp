@@ -9,7 +9,7 @@
 #include <numeric>
 #include <omp.h>
 #include <thread>
-
+#include <chrono>
 
 class Parameters {
 public:
@@ -47,7 +47,7 @@ private:
 
     void updatePopFitness();
 
-    std::tuple<std::vector<size_t>, std::vector<size_t>>  crossover(size_t individual_a, size_t individual_b);
+    void crossover(size_t parent_a, size_t parent_b, std::vector<size_t>& son_a, std::vector<size_t>& son_b);
 
     void updatePopRank();
 
@@ -85,5 +85,10 @@ private:
     std::mt19937 random_generator;
     // Optional injected solutions to seed initial population
     std::vector<std::vector<size_t>> injected_solutions;
+
+    //vetores auxiliares para o desempenho do crossover
+    std::vector<char> already_in_a;
+    std::vector<char> already_in_b;
+    std::vector<size_t> which_parent_goes_to_i;
 };
 #endif

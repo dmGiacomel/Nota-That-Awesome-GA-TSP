@@ -9,7 +9,6 @@
 #include "GeneticAlgorithmTSP.hpp"
 
 struct Region{
-
     int region_id;
     // original IDs from the TSP file
     std::vector<size_t> global_city_ids;
@@ -17,11 +16,9 @@ struct Region{
 
 // Compute cut points to divide data into k equal parts (quantiles)
 std::vector<double> compute_cuts(std::vector<double>& values, int k){
-
     if(values.empty() || k <= 1){
         return {};
     }
-
     std::sort(values.begin(), values.end());
     std::vector<double> cuts;
     size_t n = values.size();
@@ -35,13 +32,10 @@ std::vector<double> compute_cuts(std::vector<double>& values, int k){
 
 // Divide the instance into balanced regions using quantile cuts on x and y
 std::vector<Region> split_instance_balanced(const TSPInstance& instance, int grid_rows, int grid_cols){
-
     size_t n = instance.getTourSize();
-
     if(n == 0){
         return {};
     }
-
     std::vector<double> all_x, all_y;
     all_x.reserve(n);
     all_y.reserve(n);
@@ -110,16 +104,67 @@ std::pair<TSPInstance, std::vector<size_t>> create_subinstance(const TSPInstance
     return { TSPInstance(sub_adj, sub_coords, n_sub), region_cities };
 }
 
+std::vector<std::vector<size_t>> generate_diversified_seeds(
+    const std::vector<std::vector<size_t>>& regional_solutions,
+    size_t n_global,
+    size_t n_seeds,
+    std::mt19937& rng)
+{
+    // Flatten the concatenated regional solution once
+    std::vector<size_t> base;
+    base.reserve(n_global);
+    for(const auto& reg : regional_solutions)
+        for(size_t x : reg)
+            base.push_back(x);
+
+    std::vector<std::vector<size_t>> seeds;
+    seeds.reserve(n_seeds);
+
+    for(size_t s = 0; s < n_seeds; ++s){
+        std::vector<size_t> tour = base;
+
+        // 1. Random cyclic shift
+        size_t shift = rng() % n_global;
+        std::rotate(tour.begin(), tour.begin() + shift, tour.end());
+
+        // 2. Random segment reversal (big 2-opt)
+        size_t i = rng() % n_global;
+        size_t j = rng() % n_global;
+        if(i > j) std::swap(i, j);
+        std::reverse(tour.begin() + i, tour.begin() + j + 1);
+
+        // 3. Random inversion of region order
+        // (simulate your "random permutation of sub-solutions")
+        // We rebuild but using a shuffled order
+        std::vector<size_t> idx(regional_solutions.size());
+        std::iota(idx.begin(), idx.end(), 0);
+        std::shuffle(idx.begin(), idx.end(), rng);
+
+        std::vector<size_t> permuted;
+        permuted.reserve(n_global);
+        for(size_t r : idx)
+            permuted.insert(permuted.end(),
+                            regional_solutions[r].begin(),
+                            regional_solutions[r].end());
+
+        // This overwrites with a valid permuted seed
+        tour = std::move(permuted);
+        seeds.push_back(std::move(tour));
+    }
+    return seeds;
+}
 
 namespace fs = std::filesystem;
 
 int main(int argc, char** argv){
 
+    std::mt19937 random_generator(42);
+
     // Part 2 configuration
     // Usage: tsp_regions.exe <tsp_file> [grid_rows grid_cols]
-    std::string target_file = "./arquivos_tsp/d657.tsp"; // default test instance
-    int GRID_ROWS = 2; // default 2x2 grid
-    int GRID_COLS = 2;
+    std::string target_file = "./arquivos_tsp/brd14051.tsp"; // default test instance
+    int GRID_ROWS = 4; // default 2x2 grid
+    int GRID_COLS = 4;
 
     if(argc >= 2){
         target_file = argv[1];
@@ -150,34 +195,28 @@ int main(int argc, char** argv){
         std::cout << "Dividindo em grade " << GRID_ROWS << "x" << GRID_COLS << " (quantis)\n";
         auto regions = split_instance_balanced(tsp_global, GRID_ROWS, GRID_COLS);
 
-        std::vector<size_t> assembled_global_solution;
-        assembled_global_solution.reserve(n_global);
-
+        std::vector<std::vector<size_t>> assembled_global_solution;
         double sum_regional_costs = 0.0;
 
         // Resolves each region independently
         for(const auto& reg : regions){
-
             if(reg.global_city_ids.empty()){
                 continue;
             }
-
             std::cout << "Processando regiao " << reg.region_id << " (" << reg.global_city_ids.size() << " cidades)";
-
             // Creates sub-instance (mapping local 0..k -> global ID)
             auto [tsp_local, local_to_global] = create_subinstance(tsp_global, reg.global_city_ids);
 
             // Configures GA for the region (fewer iterations due to smaller size)
             Parameters params_local;
-            params_local.pop_size = 1000;
+            params_local.pop_size = 600;
             params_local.max_iter = 1000;
             params_local.mutation_rate = 0.05;
             params_local.crossover_rate = 0.7;
-            params_local.heuristics_rate = 0.2; // delete-cross
+            params_local.heuristics_rate = 0.04; // delete-cross
             params_local.elitism = 0.01; 
-            params_local.random_seed = 42 + reg.region_id;
+            params_local.random_seed = random_generator();
             params_local.tournament_size = 3;
-
 
             // Executes local GA
             GeneticAlgorithmTSP ga_local(tsp_local, params_local);
@@ -187,38 +226,39 @@ int main(int argc, char** argv){
             sum_regional_costs += info_local.best_fitness;
 
             // Translates local route (0..k) to global IDs and adds to solution
-            for(size_t id_local : info_local.best_solution){
-                assembled_global_solution.push_back(local_to_global[id_local]);
+            auto solution_size = info_local.best_solution.size();
+            for(size_t i{0}; i < solution_size; i++){
+                info_local.best_solution[i] = local_to_global[info_local.best_solution[i]];
             }
+            assembled_global_solution.emplace_back(info_local.best_solution);
         }
 
         std::cout << "\nSolucoes regionais concluidas\n";
         std::cout << "Soma dos custos regionais (sem conexao): " << sum_regional_costs << "\n";
 
         // Final global optimization
-        // The 'assembled_global_solution' is a simple concatenation; we need to refine the inter-region links
-        // We'll use it (and mutations of it) to seed the global GA.
-        
         std::cout << "\nIniciando montagem e refinamento global\n";
 
         Parameters params_global;
-        params_global.pop_size = 1000; 
-        params_global.max_iter = 1000; // final refinement
-        params_global.mutation_rate = 0.05;
+        params_global.pop_size = 600; 
+        params_global.max_iter = 2000; // final refinement
+        params_global.mutation_rate = 0.07;
         params_global.crossover_rate = 0.7;
-        params_global.heuristics_rate = 0.2; // delete-cross
-        params_global.elitism = 0.01; // 1 individual
-        params_global.random_seed = 100;
+        params_global.heuristics_rate = 0.05; // delete-cross
+        params_global.elitism = 0.01;
+        params_global.random_seed = random_generator();
         params_global.tournament_size = 3;
 
         GeneticAlgorithmTSP ga_global(tsp_global, params_global);
 
-        // Injeta a solucao regional concatenada como semente para o AG global
-        std::vector<std::vector<size_t>> injected;
-        if(assembled_global_solution.size() == n_global){
-            injected.push_back(assembled_global_solution);
-        }
-        ga_global.setInjectedSolutions(injected);
+        auto seeds = generate_diversified_seeds(
+            assembled_global_solution,
+            n_global/2,
+            params_global.pop_size, 
+            random_generator
+        );
+
+        ga_global.setInjectedSolutions(seeds);
 
         // Execute global GA (the injected solution will seed the initial population)
         ReturnInfo info_global = ga_global.solve();
