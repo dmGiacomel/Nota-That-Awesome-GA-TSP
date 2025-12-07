@@ -3,7 +3,7 @@
 GeneticAlgorithmTSP::GeneticAlgorithmTSP(const TSPInstance& instance, Parameters parameters)
     :parameters(parameters),
     tsp_instance(instance),
-    n_elitist_sol(static_cast<size_t>(parameters.elitism * parameters.pop_size)), 
+    n_elitist_sol(std::max(static_cast<size_t>(1),static_cast<size_t>(parameters.elitism * parameters.pop_size))), 
     best_iter(0),
     current_iter(0),
     global_best_fitness(std::numeric_limits<double>::infinity()),
@@ -49,7 +49,7 @@ ReturnInfo GeneticAlgorithmTSP::solve(){
 
     for(current_iter = 1; current_iter < parameters.max_iter; current_iter++){
 
-        std::cout << "iter " << current_iter << std::endl; 
+        // std::cout << "iter " << current_iter << std::endl; 
         applyElitism();
         generateOffspring();
         applyMutation();
