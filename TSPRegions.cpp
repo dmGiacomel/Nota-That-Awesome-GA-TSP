@@ -110,46 +110,28 @@ std::vector<std::vector<size_t>> generate_diversified_seeds(
     size_t n_seeds,
     std::mt19937& rng)
 {
-    // Flatten the concatenated regional solution once
-    std::vector<size_t> base;
-    base.reserve(n_global);
-    for(const auto& reg : regional_solutions)
-        for(size_t x : reg)
-            base.push_back(x);
+    std::vector<std::vector<size_t>> seeds(n_seeds);
 
-    std::vector<std::vector<size_t>> seeds;
-    seeds.reserve(n_seeds);
+    auto n_regions = regional_solutions.size();
+    for(size_t s = 0; s < n_seeds; s++){
+        auto regional_sol_copy = regional_solutions;
+        for(auto &region : regional_sol_copy){
+            std::rotate(
+                region.begin(),
+                region.begin() + (rng() % region.size()),
+                region.end()
+            );
+        }
 
-    for(size_t s = 0; s < n_seeds; ++s){
-        std::vector<size_t> tour = base;
+        std::shuffle(regional_sol_copy.begin(), regional_sol_copy.end(), rng);
 
-        // 1. Random cyclic shift
-        size_t shift = rng() % n_global;
-        std::rotate(tour.begin(), tour.begin() + shift, tour.end());
-
-        // 2. Random segment reversal (big 2-opt)
-        size_t i = rng() % n_global;
-        size_t j = rng() % n_global;
-        if(i > j) std::swap(i, j);
-        std::reverse(tour.begin() + i, tour.begin() + j + 1);
-
-        // 3. Random inversion of region order
-        // (simulate your "random permutation of sub-solutions")
-        // We rebuild but using a shuffled order
-        std::vector<size_t> idx(regional_solutions.size());
-        std::iota(idx.begin(), idx.end(), 0);
-        std::shuffle(idx.begin(), idx.end(), rng);
-
-        std::vector<size_t> permuted;
-        permuted.reserve(n_global);
-        for(size_t r : idx)
-            permuted.insert(permuted.end(),
-                            regional_solutions[r].begin(),
-                            regional_solutions[r].end());
-
-        // This overwrites with a valid permuted seed
-        tour = std::move(permuted);
-        seeds.push_back(std::move(tour));
+        for(auto &region : regional_sol_copy){
+            seeds[s].insert(
+                seeds[s].end(),
+                region.begin(),
+                region.end()
+            );
+        }
     }
     return seeds;
 }

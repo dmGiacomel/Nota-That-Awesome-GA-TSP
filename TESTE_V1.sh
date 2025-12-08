@@ -1,5 +1,4 @@
 #!/bin/bash
-
 EXEC=./exec_parte_1.x
 DIR_TSP=./arquivos_tsp
 
@@ -14,7 +13,6 @@ FILES=(
     "d657.tsp"
     "d1291.tsp"
     "pcb3038.tsp"
-    "rl5915.tsp"
     # adicione/remova aqui
 )
 

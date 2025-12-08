@@ -1,0 +1,8 @@
+Arquivo: eil51.tsp
+Executado em: dom 07 dez 2025 15:58:06 -03
+LOCAL:  pop=350 mut=0.20 cross=0.85 heur=0.05 elit=0.01 max_iter=1500 tour=3
+GLOBAL: pop=700 mut=0.15 cross=0.80 heur=0.05 elit=0.005 max_iter=5000 tour=3
+GRID:   rows=2 cols=2
+
+seed,best_fitness,global_seconds,local_seconds,best_iter
+1,441.052,26.6576,5.56738,423

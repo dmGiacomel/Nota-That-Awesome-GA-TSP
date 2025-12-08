@@ -1,0 +1,12 @@
+Arquivo: d657.tsp
+Executado em: dom 07 dez 2025 18:10:24 -03
+LOCAL:  pop=350 mut=0.20 cross=0.85 heur=0.05 elit=0.01 max_iter=1700 tour=3
+GLOBAL: pop=700 mut=0.15 cross=0.80 heur=0.05 elit=0.005 max_iter=5000 tour=3
+GRID:   rows=3 cols=3
+
+seed,best_fitness,global_seconds,local_seconds,best_iter
+1,57389.6,1028.13,29.7181,3506
+2,57942.3,1061.03,29.4754,3819
+3,58686.4,1056.52,29.9468,4190
+4,58142.9,1049.11,29.69,4873
+5,57431,1041.66,29.945,2465
